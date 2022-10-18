@@ -34,7 +34,30 @@ class Track:
         # unassigned measurement transformed from sensor to vehicle coordinates
         # - initialize track state and track score with appropriate values
         ############
+        z = meas.z
 
+        # intitialize the position of x based on measurement
+        pos_sens = np.ones((4, 1))
+        pos_sens[0:3] = z[0:3]
+        pos_veh = meas.sensor.sens_to_veh * pos_sens
+        self.x = np.zeros((6, 1))
+        self.x[0:3] = pos_veh[0:3]
+
+        # intitialize the related position covariance matrix P based on measurement
+        sigma_p44 = params.sigma_p44  # initial setting for estimation error covariance P entry for vx
+        sigma_p55 = params.sigma_p55  # initial setting for estimation error covariance P entry for vy
+        sigma_p66 = params.sigma_p66
+
+        P_pos = M_rot * meas.R * M_rot.transpose()
+
+        P_vel = np.matrix([[sigma_p44 ** 2, 0, 0],
+                           [0, sigma_p55 ** 2, 0],
+                           [0, 0, sigma_p66 ** 2]])
+
+        self.P = np.zeros((6, 6))
+        self.P[:3, :3] = P_pos
+        self.P[3:, 3:] = P_vel
+        '''
         self.x = np.matrix([[49.53980697],
                         [ 3.41006279],
                         [ 0.91790581],
@@ -47,8 +70,9 @@ class Track:
                         [0.0e+00, 0.0e+00, 0.0e+00, 2.5e+03, 0.0e+00, 0.0e+00],
                         [0.0e+00, 0.0e+00, 0.0e+00, 0.0e+00, 2.5e+03, 0.0e+00],
                         [0.0e+00, 0.0e+00, 0.0e+00, 0.0e+00, 0.0e+00, 2.5e+01]])
-        self.state = 'confirmed'
-        self.score = 0
+        '''
+        self.state = "initialized"
+        self.score = 1. / params.window
         
         ############
         # END student code
@@ -91,6 +115,12 @@ class Trackmanagement:
         self.track_list = []
         self.last_id = -1
         self.result_list = []
+
+        self.delete_threshold = params.delete_threshold
+        self.confirmed_threshold = params.confirmed_threshold
+        self.window = params.window
+        self.initial_del_threshold = 0.17
+        self.max_P = params.max_P
         
     def manage_tracks(self, unassigned_tracks, unassigned_meas, meas_list):  
         ############
@@ -106,10 +136,12 @@ class Trackmanagement:
             # check visibility    
             if meas_list: # if not empty
                 if meas_list[0].sensor.in_fov(track.x):
-                    # your code goes here
-                    pass 
+                    track.score -= 1./self.window
 
-        # delete old tracks   
+        # delete old tracks
+        for track in self.track_list:
+            if (track.state == "confirmed" and track.score < self.delete_threshold) or ((track.state == "tentative" or "initialized") and (track.score < self.initial_del_threshold or track.P[0, 0] > self.max_P or track.P[1, 1] > self.max_P)):
+                self.delete_track(track)
 
         ############
         # END student code
@@ -139,9 +171,10 @@ class Trackmanagement:
         # - increase track score
         # - set track state to 'tentative' or 'confirmed'
         ############
+        track.score += 1. / self.window
+        if track.score > self.confirmed_threshold:
+            track.state == "confirmed"
 
-        pass
-        
         ############
         # END student code
         ############ 

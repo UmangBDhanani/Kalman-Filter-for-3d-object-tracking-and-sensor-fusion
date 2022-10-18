@@ -82,7 +82,6 @@ class Filter:
         ## update state x and covariance P with associated measurement, save x and P in track
 
         x = track.x
-        # h_x = meas.sensor.get_hx(x)
         H = meas.sensor.get_H(x)
         P = track.P
         gamma = self.gamma(track, meas)
@@ -104,9 +103,9 @@ class Filter:
 
         x = track.x
         z = meas.z
-        H = meas.sensor.get_H(x)
+        h_x = meas.sensor.get_hx(x)
 
-        return z - H * x
+        return z - h_x
 
         ############ 
 
