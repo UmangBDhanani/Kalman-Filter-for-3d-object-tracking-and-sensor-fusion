@@ -42,6 +42,7 @@ class Track:
         pos_veh = meas.sensor.sens_to_veh * pos_sens
         self.x = np.zeros((6, 1))
         self.x[0:3] = pos_veh[0:3]
+        self.x = np.asmatrix(self.x)
 
         # intitialize the related position covariance matrix P based on measurement
         sigma_p44 = params.sigma_p44  # initial setting for estimation error covariance P entry for vx
@@ -120,7 +121,7 @@ class Trackmanagement:
         self.confirmed_threshold = params.confirmed_threshold
         self.tentative_threshold = params.tentative_threshold
         self.window = params.window
-        self.initial_del_threshold = 0.16
+        self.initial_del_threshold = 0.10
         self.max_P = params.max_P
         
     def manage_tracks(self, unassigned_tracks, unassigned_meas, meas_list):  
@@ -141,7 +142,7 @@ class Trackmanagement:
 
         # delete old tracks
         for track in self.track_list:
-            if (track.state == "confirmed" and track.score < self.delete_threshold) or ((track.state == "tentative" or track.score == "initialized") and track.score < self.initial_del_threshold) or (track.P[0, 0] > self.max_P or track.P[1, 1] > self.max_P):
+            if (track.state == "confirmed" and track.score < self.delete_threshold) or ((track.state == "tentative" or track.score == "initialized") and ((track.score < self.initial_del_threshold) or (track.P[0, 0] > self.max_P or track.P[1, 1] > self.max_P))):
                 self.delete_track(track)
 
         ############
@@ -173,6 +174,7 @@ class Trackmanagement:
         # - set track state to 'tentative' or 'confirmed'
         ############
         track.score += 1. / self.window
+        track.score = min(track.score, 1)
         if track.state == "initialized" and track.score > self.tentative_threshold:
             track.state == "tentative"
         elif track.state == "tentative" and track.score > self.confirmed_threshold:

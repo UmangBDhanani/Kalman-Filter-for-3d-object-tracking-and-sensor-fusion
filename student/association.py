@@ -44,6 +44,7 @@ class Association:
         self.unassigned_tracks = list(range(tracks))
         self.unassigned_meas = list(range(measurements))
         self.association_matrix = np.zeros([tracks, measurements])
+        self.association_matrix = np.asmatrix(self.association_matrix)
         for i,track in enumerate(track_list):
             for j,meas in enumerate(meas_list):
                 MH_distance = self.MHD(track, meas, KF)
@@ -108,7 +109,11 @@ class Association:
         ############
         # TODO Step 3: return True if measurement lies inside gate, otherwise False
         ############
-        limit = chi2.ppf(params.gating_threshold, sensor.dim_meas)
+        if sensor.name == "lidar":
+            dof = 2
+        elif sensor.name == "camera":
+            dof = 1
+        limit = chi2.ppf(params.gating_threshold, df = dof)
         if MHD < limit:
             return True
         else:
@@ -159,7 +164,7 @@ class Association:
             # update score and track state 
             manager.handle_updated_track(track)
             
-            # save updated track
+        # save updated track
             manager.track_list[ind_track] = track
             
         # run track management 

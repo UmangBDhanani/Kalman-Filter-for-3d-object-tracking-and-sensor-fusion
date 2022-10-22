@@ -34,6 +34,7 @@ class Filter:
 
         dt = self.dt
         F = np.identity(6)
+        F = np.asmatrix(F)
         F[0, 3], F[1, 4], F[2, 5] = dt, dt, dt
         return F
 
@@ -66,12 +67,13 @@ class Filter:
         ############
         ## predict state x and estimation error covariance P to next timestep, save x and P in track
 
-        x = track.x
+        #x = track.x
+        #P = track.P
+        #Q = self.Q()
+
         F = self.F()
-        P = track.P
-        Q = self.Q()
-        x = F * x
-        P = F * P * F.transpose() + Q
+        x = F * track.x
+        P = F * track.P * F.transpose() + self.Q()
         track.set_x(x)
         track.set_P(P)
 
@@ -81,16 +83,17 @@ class Filter:
         ############
         ## update state x and covariance P with associated measurement, save x and P in track
 
-        x = track.x
-        H = meas.sensor.get_H(x)
-        P = track.P
+        #x = track.x
+        #P = track.P
+
+        H = meas.sensor.get_H(track.x)
         gamma = self.gamma(track, meas)
         S = self.S(track, meas, H)
 
-        K = P * H.transpose() * np.linalg.inv(S)
-        x = x + K * gamma
+        K = track.P * H.transpose() * np.linalg.inv(S)
+        x = track.x + K * gamma
         I = np.identity(self.dim_state)
-        P = (I - K * H) * P
+        P = (I - K * H) * track.P
         track.set_x(x)
         track.set_P(P)
 
