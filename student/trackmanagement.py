@@ -123,15 +123,15 @@ class Trackmanagement:
         self.window = params.window
         self.initial_del_threshold = 0.10
         self.max_P = params.max_P
-        
-    def manage_tracks(self, unassigned_tracks, unassigned_meas, meas_list):  
+
+    def manage_tracks(self, unassigned_tracks, unassigned_meas, meas_list):
         ############
         # TODO Step 2: implement track management:
         # - decrease the track score for unassigned tracks
         # - delete tracks if the score is too low or P is too big (check params.py for parameters that might be helpful, but
         # feel free to define your own parameters)
         ############
-        
+
         # decrease score for unassigned tracks
         for i in unassigned_tracks:
             track = self.track_list[i]
@@ -148,12 +148,12 @@ class Trackmanagement:
         ############
         # END student code
         ############ 
-            
+
         # initialize new track with unassigned measurement
-        for j in unassigned_meas: 
+        for j in unassigned_meas:
             if meas_list[j].sensor.name == 'lidar': # only initialize with lidar measurements
                 self.init_track(meas_list[j])
-            
+
     def addTrackToList(self, track):
         self.track_list.append(track)
         self.N += 1
@@ -166,8 +166,8 @@ class Trackmanagement:
     def delete_track(self, track):
         print('deleting track no.', track.id)
         self.track_list.remove(track)
-        
-    def handle_updated_track(self, track):      
+
+    def handle_updated_track(self, track):
         ############
         # TODO Step 2: implement track management for updated tracks:
         # - increase track score
@@ -175,11 +175,18 @@ class Trackmanagement:
         ############
         track.score += 1. / self.window
         track.score = min(track.score, 1)
+        if track.score > self.confirmed_threshold:
+            track.state = "confirmed"
+        else:
+            track.state = "tentative"
+
+        '''
         if track.state == "initialized" and track.score > self.tentative_threshold:
             track.state == "tentative"
         elif track.state == "tentative" and track.score > self.confirmed_threshold:
             track.state == "confirmed"
-
+        '''
         ############
         # END student code
-        ############ 
+        ############
+
